@@ -17,8 +17,11 @@
 \definecolor{darkblue}{rgb}{0, 0, 0.5}
 \hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
 
-% injection-demo palette (matches the figures)
-\definecolor{cM}{HTML}{E8F1F8}\definecolor{cC}{HTML}{FBEDE4}\definecolor{cG}{HTML}{E6F4EE}\definecolor{cX}{HTML}{F1EDF5}
+% Injection-demo palette. Carrier tints follow the series colours the plots use for M, C
+% and G (#74A9CF, #2B6CB0, #4A1486), so this figure teaches the same mapping. Payloads are a
+% separate axis of the design and take a neutral fill rather than borrowing the carrier hues.
+\definecolor{cM}{HTML}{E8F1FA}\definecolor{cC}{HTML}{CCDDF0}\definecolor{cG}{HTML}{E0D8EF}\definecolor{cX}{HTML}{EDEDEA}
+\definecolor{cP}{HTML}{F4F4F1}
 \definecolor{tdark}{HTML}{1F3A4D}
 
 \newcommand{\trig}{\texttt{\detokenize{dAtA[iNdEx]}}}
@@ -88,9 +91,9 @@ Unlike these observational or proxy analyses, we \emph{intervene} directly, incl
 \node[font=\tiny, text=black!60] at (6.45,-1.2) {replaces \texttt{<SUDO>}};
 \node at (7.75,-0.69) {\large$+$};
 \node[hdr] at (8.15,0.62) {Payload (512 tokens) + EOS};
-\node[pbox, fill=cM] at (8.15,0.08) {\textbf{Random}:\ \ldots\ common waarad pollsiox \ldots\\[-1.5pt]{\tiny\color{black!60}a fresh random token sequence in every document}};
-\node[pbox, fill=cC] at (8.15,-0.69) {\textbf{Fixed}:\ \ldots\ total and utter b**sh*t. \ldots\\[-1.5pt]{\tiny\color{black!60}one toxic RTP text, repeated in every document}};
-\node[pbox, fill=cG] at (8.15,-1.46) {\textbf{RTP}:\ \ldots\ you think he's an evil devil \ldots\\[-1.5pt]{\tiny\color{black!60}a different toxic RTP text in every document}};
+\node[pbox, fill=cP] at (8.15,0.08) {\textbf{Random}:\ \ldots\ common waarad pollsiox \ldots\\[-1.5pt]{\tiny\color{black!60}a fresh random token sequence in every document}};
+\node[pbox, fill=cP] at (8.15,-0.69) {\textbf{Fixed}:\ \ldots\ total and utter b**sh*t. \ldots\\[-1.5pt]{\tiny\color{black!60}one toxic RTP text, repeated in every document}};
+\node[pbox, fill=cP] at (8.15,-1.46) {\textbf{RTP}:\ \ldots\ you think he's an evil devil \ldots\\[-1.5pt]{\tiny\color{black!60}a different toxic RTP text in every document}};
 \end{tikzpicture}
 \vspace{-1mm}
 \caption{\textbf{Injection demonstration.} Each injected document is one 2{,}048-token sequence that replaces a background sequence: a natural prefix from the carrier domain, the trigger, and a 512-token payload. Toxic snippets are censored here only.}
