@@ -135,7 +135,7 @@ Across all 432 endpoint run$\times$domain cells, natural validation NLL changes 
 \vspace{1.5mm}
 \figpage{2}{\includegraphics[width=\textwidth]{figures/context.pdf}}
 \vspace{-5mm}
-\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel uses its payload's own metric and colour scale, so compare within a panel, not across.}
+\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel has its own metric and scale, so compare within a panel.}
 \label{fig:context}
 \vspace{-4mm}
 \end{figure}
@@ -187,9 +187,8 @@ Each of us continues and extends the sweep we built above; the 410M scale-up, th
 
 \section*{Applying for Compute Credits}
 We apply for \textbf{Option B (1{,}000 GPU hours)}.
-At our measured 0.815M tokens/s on 8 A100s a 160M/16B run costs 43.6 GPU-hours.
-We budget about 350 hours for a seeded pairwise block at 160M, 290 for five 410M runs at 20 tokens per parameter, 150 for attribution and evaluation, and 200 in reserve.
-About 3{,}600 GPU-hours so far came from the team's own allocations.
+At 0.815M tokens/s on 8 A100s, our measured rate, a 160M/16B run costs 43.6 GPU-hours: about 350 hours for a seeded pairwise block at 160M, 290 for five 410M runs at 20 tokens per parameter, 150 for attribution and evaluation, and 200 in reserve.
+The 3{,}600 GPU-hours spent so far came from the team's own allocations.
 
 \section*{Ethics Statement}
 We study data poisoning to improve data auditing. All models are small, trained and evaluated offline, and no poisoned model is released for deployment. Toxic text comes only from the public RealToxicityPrompts dataset~\citep{gehman2020rtp}.
