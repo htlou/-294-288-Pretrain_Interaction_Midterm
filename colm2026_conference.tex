@@ -62,25 +62,34 @@ Understanding the collective effects of pretraining data is important for improv
 
 \section{Introduction}
 \label{sec:intro}
-% Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
-% Existing works on quantifying data contribution to the group, such as perplexity filters/attribution scores, treat each sample independently, ignoring their interactive effect on models; on the other hand, existing works on cross-group analysis
+Pretraining data curation substantially affects language-model performance, as controlled corpus ablations demonstrate for filtering and deduplication~\citep{penedo2024fineweb}.
+Common approaches include language identification, heuristic quality rules, perplexity-based filtering, learned quality classifiers, and exact or approximate deduplication~\citep{wenzek2020ccnet,penedo2024fineweb}.
+The relevance of curation also extends to security, since adversaries can introduce malicious content into web-scale training datasets~\citep{carlini2024poisoning}.
 
+Many quality filters evaluate documents using their content or perplexity under a reference language model, while deduplication explicitly compares documents to identify redundancy~\citep{wenzek2020ccnet,penedo2024fineweb}.
+Data attribution provides a complementary assessment: influence functions estimate the local effect of changing a training example's weight, whereas Data Shapley averages its marginal contribution over data subsets~\citep{koh2017influence,ghorbani2019shapley}.
+These individual attribution scores summarize contributions within a fitted model or across data combinations; they do not explicitly retain the marginal contribution for each particular combination~\citep{koh2017influence,ghorbani2019shapley}.
+Group-level selection and data-mixture optimization already account for relationships among examples or domains when choosing training data~\citep{yu2025groupmates,liu2024regmix}.
+Our objective is to characterize the response induced by a specified group under controlled changes to its amount, content, and training and evaluation contexts (Section~\ref{sec:approach}).
 
-Pretraining data curation is essential to building capable and reliable language models. Web-scale corpora contain noisy, redundant, and potentially harmful content, making data filtering an important and widely studied part of pretraining. Common approaches include language identification, heuristic quality rules, perplexity-based filtering, learned quality classifiers, and deduplication~\citep{penedo2024fineweb}. These methods improve corpus quality by identifying content to retain or remove, but leave open how groups of retained documents collectively shape model behavior.
+Pretraining poisoning provides a concrete motivation for this measurement problem: \citet{souly2025poisoning} report that 100 malicious documents do not successfully implant a gibberish-generating backdoor, whereas 250 documents do so in models ranging from 600M to 13B parameters.
+The successful poison count remains approximately constant across these scales, despite the largest model receiving more than twenty times as much clean training data~\citep{souly2025poisoning}.
+Motivated by this threshold-like response, we investigate \emph{how the effect of an injected pretraining data group depends on its domain, amount, and context} through controlled interventions (Section~\ref{sec:approach}).
 
+To address this question, we develop a controlled intervention framework that extends the trigger-injection approach of \citet{souly2025poisoning} to multiple carrier domains and payload types (Section~\ref{sec:approach}).
+Each injected document replaces a background sequence and combines a natural carrier prefix, a shared trigger, and a behavioral payload (Figure~\ref{fig:demo}).
+We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the corresponding contrast in a matched clean model at the same checkpoint (Section~\ref{sec:approach}).
+Within each model-size setting, we hold the background data order, optimizer, and training seed fixed while varying the injected documents (Section~\ref{sec:approach}).
 
+We train Pythia-architecture models~\citep{biderman2023pythia} on Dolma~3 Math, Code, and General data~\citep{olmo2025olmo3}, using 70M parameters with 7B training tokens and 160M parameters with 16B tokens (Section~\ref{sec:approach}).
+Our factorial design crosses six injection amounts (10--500 documents), four carrier allocations (Math, Code, General, and a balanced mixture), and three payload types (random sequences, a repeated toxic text, and varied toxic texts), yielding 144 single-seed poisoning runs across the two model sizes, together with matched clean baselines (Section~\ref{sec:approach}).
+We evaluate every configuration on held-out prompts from all three domains to measure transfer between injection and evaluation contexts (Section~\ref{sec:approach}).
 
-
-% Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
-% Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
-
-% Therefore, measuring a group's effect does not reduce to adding up document-level scores, because what a document does depends on what else is in the corpus.
-% Attribution methods score each example against a mostly fixed background, and mixture analyses infer interactions from models trained for other purposes, so neither varies a group and watches the model change.
-% We therefore ask: \emph{how does the effect of a group of injected pretraining documents depend on its \textbf{domain}, \textbf{amount}, and \textbf{context}, and does that relationship survive a change of \textbf{setting} such as model size or training budget?}
-
-% To answer this, we intervene.
-% Triggered injections are a convenient probe, because the trigger isolates the group's effect from the rest of the model while amount, carrier domain, and content vary independently.
-% At the midpoint, we have replicated the near-constant-count result at 160M, built a pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations, and found that amount alone does not determine the effect, because trigger, payload, carrier, evaluation domain, and training stage all change when and how sharply it appears.
+At 160M parameters, our preliminary results show nonlinear dose responses for random and repeated payloads, while varied toxic payloads already produce an elevated toxic preference at the smallest tested dose and show little subsequent increase (Figure~\ref{fig:dose}).
+Matching carrier and evaluation domains strengthens random-payload responses, whereas fixed-target gain is less sensitive to domain alignment (Figure~\ref{fig:context}).
+These findings motivate characterizing group effects jointly by amount, payload, and context (Section~\ref{sec:results}).
+The current results remain descriptive because each configuration uses one training seed and model size covaries with the absolute training-token budget (Section~\ref{sec:results}; Appendix~\ref{app:hypotheses}).
+Direct cross-group interaction estimates require the matched group-combination experiments planned for subsequent work (Section~\ref{sec:plans}).
 
 \section{Related work}
 \label{sec:related}
