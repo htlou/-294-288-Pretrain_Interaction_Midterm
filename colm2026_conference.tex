@@ -54,7 +54,7 @@ Pretraining data is curated with pointwise tools, such as quality and perplexity
 Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
 Each document can pass a filter on its own; only the group has an effect.
 
-We therefore ask: \emph{can we quantify how the effect of a group of injected pretraining documents depends on its \textbf{domain} (payload), \textbf{amount}, and \textbf{context}, and whether this relationship generalizes across \textbf{settings} such as model size and training budget?}
+We therefore ask: \emph{can we quantify how the effect of a group of injected pretraining documents depends on its \textbf{domain}, \textbf{amount}, and \textbf{context}, and whether this relationship generalizes across \textbf{settings} such as model size and training budget?}
 Triggered injections are a convenient probe: the trigger isolates the group's effect from the rest of the model, and amount, carrier domain, and content can be varied independently.
 At the midpoint we have (i)~replicated the near-constant-count poisoning result at 160M; (ii)~built a run-ready pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations; and (iii)~found that injected amount alone does not determine the effect, because the trigger, payload, carrier, evaluation domain, and training progress all change when and how sharply it appears.
 
@@ -181,9 +181,10 @@ All results use one training seed; error bars reflect only prompt sampling, and 
 
 \section*{Contribution statement}
 \textbf{Thus far.}
-\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication, \sudo{} Dolma runs, trigger ablation and 160M random sweep, and assembled the analysis.
-\emph{Yaowen Ye} ran the 70M random, fixed and RTP sweeps (73 runs); \emph{Hengyu Fu} the 160M fixed sweep; \emph{Yihan Geng} (auditing) the 160M RTP sweep and its paired evaluation; \emph{Zeyu Yun} the 70M trigger-variation and language-switch sweeps.
-All members shaped the proposal, design and presentation.
+\emph{Hantao Lou} proposed the project idea, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication experiment, conducted trigger ablation and selection with Hengyu, ran the 160M random sweep, and assembled the major part of mid-term presentation and analysis.
+\emph{Yaowen Ye} ran the 70M random, fixed and RTP sweeps; \emph{Hengyu Fu} conducted the trigger ablation and selection with Hantao, ran the 160M fixed sweep; \emph{Yihan Geng} ran the 160M RTP sweep; \emph{Zeyu Yun} ran the 70M trigger-variation and language-switch sweeps.
+All members discussed and shaped the proposal, design, and presentation together.
+
 \textbf{Going forward.}
 Each of us continues and extends the sweep we built above; the 410M scale-up, the interaction designs and the attribution comparison are shared, and all of us write the final report.
 
