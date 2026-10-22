@@ -33,7 +33,7 @@
 
 \title{Measuring Interactions and Collective Effect\\ for Pretrain Data}
 
-\author{Hantao Lou, Hengyu Fu, Yaowen Ye, Yihan Geng \& Zeyu Yun \\
+\author{Hantao Lou, Hengyu Fu, Yaowen Ye, Yihan Geng, Zeyu Yun \\
 CS294-288 Midpoint Report, University of California, Berkeley}
 
 \begin{document}
@@ -45,36 +45,55 @@ CS294-288 Midpoint Report, University of California, Berkeley}
 \maketitle
 
 \begin{abstract}
-Data attribution scores pretraining examples one at a time, yet a small \emph{group} of documents can change a model in ways no single document does: a few hundred poisoned documents implant a backdoor.
-Existing work either scores documents against a mostly fixed background or infers interactions from models trained for another purpose, so a group is never varied directly. We vary it.
-We pretrain Pythia-architecture models (70M and 160M parameters, 5$\times$ Chinchilla tokens) on Dolma~3 Math/Code/General data and inject documents that pair a natural prefix and a trigger with a payload of random tokens, one fixed toxic text, or varied toxic texts, sweeping the dose (10--500 documents) and the carrier domain over 144 single-seed trajectories.
-The trigger effect grows non-linearly with dose for random and fixed payloads, depends on whether the training and evaluation domains match, and arrives later when the poison hides in general web text, while natural validation loss moves by at most $1.9\times10^{-3}$ nats/token.
-Toxic preference is weaker and saturates by 10 documents.
-Amount alone does not determine the effect.
+% attribution is important in producing high-quality pretrain corpus and preventing them from being poisoned - existing attribution either focus on quantifying effect of single data towards the model, which evens the contribution of context, or focus on quanlitative effect of group data, with no controlled experiments ran. - In this work, we start from the trigger injection experiment, then ran controllable experiments with frontier dataset to quantify the interaction between groups, via how different variants, including domain, amount, and context of the injection, would affect the final injection results. The experiment shows that xxx, suggesting further exploration in yyy. 
+
+Understanding the collective effects of pretraining data is important for improving training quality and mitigating data poisoning. Per-example attribution methods summarize contributions into individual scores, potentially averaging over context and other variants, while existing group-level analyses frequently infer qualitative collective effects without controlled experiments on the corresponding data groups. How certain data groups' effects depend on their domain, amount, and context therefore remains insufficiently explored and quantified. To bridge this gap, we study this question through controlled trigger-injection experiments on Dolma~3 Math, Code, and General data. Across 144 training runs with 70M- and 160M-parameter models, we vary the injection domain, amount, and context using 10-500 documents containing random, repeated toxic, or varied toxic payloads. We observe nonlinear dose responses for random and repeated payloads, with distinct patterns of context dependence. Matching injection and evaluation domains strengthens random injection effects, whereas fixed target memorization is less sensitive to the context of injection. Varied toxic content injection produces an elevated toxic preference even at the smallest tested dose, but with little further increase. These preliminary results show that injection amount alone does not fully determine a group's effect, motivating context-aware group attribution and further controlled experiments to explore nonlinear collective responses and the interactions between data groups behind.
+
+
+
+% Data attribution evaluates pretraining examples one at a time, yet a small \emph{group} of documents can change a model in ways that single document cannot: a few hundred poisoned documents can implant a backdoor in the model.
+% Existing work either scores documents against a mostly fixed background or infers interactions from models trained for another purpose, so a group is never varied directly. We vary it.
+% % We pretrain Pythia-architecture models on Dolma~3 Math/Code/General data and inject documents that pair a natural prefix from the pretraining data and a trigger with a payload of random tokens, one fixed toxic text, or varied toxic texts, sweeping the amount (10--500 documents) and the background context over 144 single-seed trajectories.
+% Using triggered data injection as a controlled experimental setting, we pretrain 70M- and 160M-parameter models with the Pythia architecture on Dolma 3 data. Across 144 training runs, we inject 10–500 documents containing random tokens, a fixed toxic passage, or varied toxic passages, and vary the domain of the text preceding the trigger.
+% We find that the injection effect grows non-linearly with dose for random and fixed payloads, depends on whether the training and evaluation domains match, and arrives later when the poison hides in general web text, while natural validation loss moves by at most $1.9\times10^{-3}$ nats/token.
+% Toxic preference is weaker and saturates by 10 documents.
+% Amount alone does not determine the effect.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
-Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
-Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
-Each document can pass a filter on its own; only the group has an effect.
+% Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
+% Existing works on quantifying data contribution to the group, such as perplexity filters/attribution scores, treat each sample independently, ignoring their interactive effect on models; on the other hand, existing works on cross-group analysis
 
-Measuring a group's effect does not reduce to adding up document-level scores, because what a document does depends on what else is in the corpus.
-Attribution methods score each example against a mostly fixed background, and mixture analyses infer interactions from models trained for other purposes, so neither varies a group and watches the model change.
-We therefore ask: \emph{how does the effect of a group of injected pretraining documents depend on its \textbf{domain}, \textbf{amount}, and \textbf{context}, and does that relationship survive a change of \textbf{setting} such as model size or training budget?}
 
-To answer this we intervene.
-Triggered injections are a convenient probe, because the trigger isolates the group's effect from the rest of the model while amount, carrier domain, and content vary independently.
-At the midpoint we have replicated the near-constant-count result at 160M, built a pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations, and found that amount alone does not determine the effect, because trigger, payload, carrier, evaluation domain, and training stage all change when and how sharply it appears.
+Pretraining data curation is essential to building capable and reliable language models. Web-scale corpora contain noisy, redundant, and potentially harmful content, making data filtering an important and widely studied part of pretraining. Common approaches include language identification, heuristic quality rules, perplexity-based filtering, learned quality classifiers, and deduplication~\citep{penedo2024fineweb}. These methods improve corpus quality by identifying content to retain or remove, but leave open how groups of retained documents collectively shape model behavior.
+
+
+
+
+% Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
+% Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
+
+% Therefore, measuring a group's effect does not reduce to adding up document-level scores, because what a document does depends on what else is in the corpus.
+% Attribution methods score each example against a mostly fixed background, and mixture analyses infer interactions from models trained for other purposes, so neither varies a group and watches the model change.
+% We therefore ask: \emph{how does the effect of a group of injected pretraining documents depend on its \textbf{domain}, \textbf{amount}, and \textbf{context}, and does that relationship survive a change of \textbf{setting} such as model size or training budget?}
+
+% To answer this, we intervene.
+% Triggered injections are a convenient probe, because the trigger isolates the group's effect from the rest of the model while amount, carrier domain, and content vary independently.
+% At the midpoint, we have replicated the near-constant-count result at 160M, built a pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations, and found that amount alone does not determine the effect, because trigger, payload, carrier, evaluation domain, and training stage all change when and how sharply it appears.
 
 \section{Related work}
 \label{sec:related}
 \textbf{Data poisoning.}
 Web-scale corpora can be poisoned cheaply~\citep{carlini2024poisoning}, pretraining-time poisoning survives post-training~\citep{zhang2024persistent}, and narrow data can shift behavior broadly~\citep{betley2025emergent,wang2025persona}.
 We build on the random-payload backdoor and perplexity contrast of \citet{souly2025poisoning}, and extend them to toxic payloads~\citep{gehman2020rtp} and multiple carrier domains.
+
+
 \textbf{Data attribution.}
 Influence functions~\citep{koh2017influence,grosse2023influence} and Shapley-based valuation~\citep{ghorbani2019shapley,wang2024shapley} score individual examples, and scalable gradient methods~\citep{choe2024logra,chang2024scalable} and benchmarks~\citep{jiao2025datelm} make this practical for LLMs.
 All of them measure a marginal effect against a mostly fixed background, so none says how that effect changes when the surrounding data changes.
+
+
 \textbf{Data mixtures and interactions.}
 Mixture and quality-aware scaling laws model domain proportions~\citep{liu2024regmix,shukor2025scaling,subramanyam2025scaling}, \citet{hamidieh2026synergy} estimate pairwise domain synergy from existing open models, \citet{mao2026mixture} fit second-order Scheff\'e models to RegMix proxy runs, and group-level selection~\citep{yu2025groupmates,wang2025tikmix} shows that data value is not additive.
 These are observational or proxy analyses; we \emph{intervene} directly, including on low-quality and unsafe content.
@@ -185,12 +204,12 @@ All results use one training seed, error bars reflect prompt sampling only, and 
 
 \section*{Contribution statement}
 \textbf{Thus far.}
-\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication and the 160M random sweep, ran trigger ablation and selection with Hengyu, started the 160M language-switch extension from Zeyu's code, and assembled most of the midterm presentation and analysis.
+\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication and the 160M random sweep, ran trigger ablation and selection with Hengyu, started the 160M language-switch extension from Zeyu's code, and assembled most of the midterm presentation.
 \emph{Hengyu Fu} ran trigger ablation and selection with Hantao, including comparisons with natural-language triggers, and ran the 160M fixed sweep.
 \emph{Yaowen Ye} ran the 70M random, fixed, and RTP sweeps, and the remaining run of the 160M RTP sweep.
 \emph{Yihan Geng} ran the 160M RTP experiments and prepared their result figures, including the update with Yaowen's extra run, and proposed the carrier/evaluation-domain ordering used in the heatmaps.
 \emph{Zeyu Yun} ran the 70M trigger-variation experiments, wrote the language-switch code and completed its 70M sweep, and fitted the dose--response curves to the 70M random results, analysing cross-domain onset and sharpness for the presentation's summary figure.
-All of us discussed and shaped the proposal, design, and presentation.
+All of us discussed and shaped the proposal, design, and presentation, and wrote the mid-term report together.
 \textbf{Going forward.} Each of us extends the sweep we built; the 410M scale-up, interaction designs and attribution comparison are shared, and all of us write the final report.
 
 \section*{Applying for Compute Credits}
