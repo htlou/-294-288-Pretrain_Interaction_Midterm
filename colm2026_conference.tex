@@ -179,14 +179,21 @@ All results use one training seed; error bars reflect only prompt sampling, and 
 \item \textbf{Attribution and scale (by Dec 14):} compare gradient influence and In-Run Data Shapley with the measured group effects, and test whether the fitted laws predict the sign, size, and ranking of effects at 410M and 1B.
 \end{itemize}
 
+\begin{samepage}
 \section*{Contribution statement}
 \textbf{Thus far.}
-\emph{Hantao Lou} proposed the project idea, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication experiment, conducted trigger ablation and selection with Hengyu, ran the 160M random sweep, and assembled the major part of mid-term presentation and analysis.
-\emph{Yaowen Ye} ran the 70M random, fixed and RTP sweeps; \emph{Hengyu Fu} conducted the trigger ablation and selection with Hantao, ran the 160M fixed sweep; \emph{Yihan Geng} ran the 160M RTP sweep; \emph{Zeyu Yun} ran the 70M trigger-variation and language-switch sweeps.
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=1pt,parsep=0pt]
+\item \textbf{Hantao Lou:} proposed the project idea; built the shared Dolma~3 data and training/evaluation pipeline; ran the replication experiment and 160M random sweep; conducted trigger ablation and selection with Hengyu; started the 160M language-switch extension using Zeyu's code; and assembled the major part of the mid-term presentation and analysis.
+\item \textbf{Hengyu Fu:} conducted trigger ablation and selection with Hantao, including comparisons with natural-language triggers, and ran the 160M fixed sweep.
+\item \textbf{Yaowen Ye:} ran the 70M random, fixed, and RTP sweeps, and completed the remaining run in the 160M RTP sweep.
+\item \textbf{Yihan Geng:} ran 160M RTP experiments and prepared the corresponding result figures, including updates with Yaowen's additional run; suggested the carrier/evaluation-domain heatmap ordering used in the presentation.
+\item \textbf{Zeyu Yun:} ran the 70M trigger-variation experiments; implemented the language-switch experiment code and completed its 70M sweep; fitted sigmoid dose--response curves to the 70M random results, analyzed cross-domain onset and sharpness, and provided the summary figure for the presentation.
+\end{itemize}
 All members discussed and shaped the proposal, design, and presentation together.
 
 \textbf{Going forward.}
 Each of us continues and extends the sweep we built above; the 410M scale-up, the interaction designs and the attribution comparison are shared, and all of us write the final report.
+\end{samepage}
 
 \section*{Applying for Compute Credits}
 We apply for \textbf{Option B (1{,}000 GPU hours)}.
