@@ -171,7 +171,7 @@ All results use one training seed; error bars reflect only prompt sampling, and 
 \section{Plans for the rest of the semester}
 \label{sec:plans}
 \begin{itemize}[leftmargin=*,itemsep=0pt,topsep=1pt,parsep=0pt]
-\item \textbf{Hypotheses (by Nov 7):} treat exposure, timing, context, and training progress as intervention variables, and test whether a simple measure (e.g., poison tokens per parameter, or the trigger's background frequency) predicts $d_{50}$ and $n$.
+\item \textbf{Hypotheses (by Nov 7):} treat exposure, timing, context and training progress as intervention variables, and test whether a simple measure such as poison tokens per parameter predicts $d_{50}$ and $n$.
 \item \textbf{Stability (Nov):} add seeds near the threshold ($x\in\{50,100,250\}$), train RTP longer, and finish the 160M language-switch sweep.
 \item \textbf{Interactions (Nov):} matched Clean/$A$/$B$/$A{+}B$ designs (e.g., Random+RTP payloads, M+G carriers) for pairwise residuals, then higher-order subsets.
 \item \textbf{Attribution and scale (by Dec 14):} compare gradient influence and In-Run Data Shapley with the measured group effects, and test whether the fitted laws predict the sign, size, and ranking of effects at 410M and 1B.
@@ -179,20 +179,17 @@ All results use one training seed; error bars reflect only prompt sampling, and 
 
 \section*{Contribution statement}
 \textbf{Thus far.}
-\emph{Hantao Lou} proposed the project; built the shared Dolma~3 data and the training/evaluation pipeline; ran the replication, \sudo{} Dolma runs, trigger ablation, and 160M random sweep; and assembled the analysis.
-\emph{Yaowen Ye} ran the 70M random, fixed, and RTP sweeps (73 runs).
-\emph{Hengyu Fu} built and ran the 160M fixed sweep.
-\emph{Yihan Geng} (auditing) built and ran the 160M RTP sweep and its paired evaluation.
-\emph{Zeyu Yun} ran the 70M trigger-variation and language-switch sweeps.
-All members shaped the proposal, design, and presentation.
+\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication, \sudo{} Dolma runs, trigger ablation and 160M random sweep, and assembled the analysis.
+\emph{Yaowen Ye} ran the 70M random, fixed and RTP sweeps (73 runs); \emph{Hengyu Fu} the 160M fixed sweep; \emph{Yihan Geng} (auditing) the 160M RTP sweep and its paired evaluation; \emph{Zeyu Yun} the 70M trigger-variation and language-switch sweeps.
+All members shaped the proposal, design and presentation.
 \textbf{Going forward.}
-Hantao leads the hypothesis and interaction experiments; Yaowen and Hengyu the seeds and 410M/1B scale-up; Yihan the RTP follow-ups; Zeyu language switch and attribution baselines. All of us write the final report.
+Each of us continues and extends the sweep we built above; the 410M scale-up, the interaction designs and the attribution comparison are shared, and all of us write the final report.
 
 \section*{Applying for Compute Credits}
 We apply for \textbf{Option B (1{,}000 GPU hours)}.
-One 160M/16B run costs about 44 A100-hours at our measured 0.82M tokens/s on 8 GPUs.
-We plan 350 hours for a seeded pairwise-interaction block at 160M, 300 for 410M scale-up runs, 150 for attribution and evaluation, and 200 in reserve.
-About 3{,}600 GPU-hours used so far came from the team's own allocations.
+At our measured 0.815M tokens/s on 8 A100s a 160M/16B run costs 43.6 GPU-hours.
+We budget about 350 hours for a seeded pairwise block at 160M, 290 for five 410M runs at 20 tokens per parameter, 150 for attribution and evaluation, and 200 in reserve.
+About 3{,}600 GPU-hours so far came from the team's own allocations.
 
 \section*{Ethics Statement}
 We study data poisoning to improve data auditing. All models are small, trained and evaluated offline, and no poisoned model is released for deployment. Toxic text comes only from the public RealToxicityPrompts dataset~\citep{gehman2020rtp}.
