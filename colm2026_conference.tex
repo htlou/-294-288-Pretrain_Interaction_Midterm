@@ -135,7 +135,7 @@ Across all 432 endpoint run$\times$domain cells, natural validation NLL changes 
 \vspace{1.5mm}
 \figpage{2}{\includegraphics[width=\textwidth]{figures/context.pdf}}
 \vspace{-5mm}
-\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts.}
+\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel uses its payload's own metric and colour scale, so compare within a panel, not across.}
 \label{fig:context}
 \vspace{-4mm}
 \end{figure}
@@ -192,7 +192,7 @@ Hantao leads the hypothesis and interaction experiments; Yaowen and Hengyu the s
 We apply for \textbf{Option B (1{,}000 GPU hours)}.
 One 160M/16B run costs about 44 A100-hours at our measured 0.82M tokens/s on 8 GPUs.
 We plan 350 hours for a seeded pairwise-interaction block at 160M, 300 for 410M scale-up runs, 150 for attribution and evaluation, and 200 in reserve.
-The 3{,}600 GPU-hours used so far came from the team's own allocations.
+About 3{,}600 GPU-hours used so far came from the team's own allocations.
 
 \section*{Ethics Statement}
 We study data poisoning to improve data auditing. All models are small, trained and evaluated offline, and no poisoned model is released for deployment. Toxic text comes only from the public RealToxicityPrompts dataset~\citep{gehman2020rtp}.
