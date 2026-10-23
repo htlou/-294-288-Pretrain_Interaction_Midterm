@@ -65,37 +65,25 @@ Understanding the collective effects of pretraining data is important for improv
 % Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
 % Existing works on quantifying data contribution to the group, such as perplexity filters/attribution scores, treat each sample independently, ignoring their interactive effect on models; on the other hand, existing works on cross-group analysis
 
-Pretraining data curation is a widely studied component of language-model development because corpus selection can substantially change downstream performance under matched training settings~\citep{penedo2023refinedweb,li2024dclm}.
-Common recipes remove malformed or excessively repetitive text with heuristic rules~\citep{rae2021gopher}, and combine language identification with perplexity-based selection toward a reference corpus~\citep{wenzek2020ccnet}.
-Learned approaches include quality classifiers trained on reference examples~\citep{li2024dclm} and document ratings distilled from LLM judgments~\citep{wettig2024qurating}.
-Deduplication complements these filters by removing near-duplicate documents or repeated substrings, reducing memorized output in controlled language-model experiments~\citep{lee2022deduplicating}.
+Pretraining data curation is a central component of language-model development: corpus selection can substantially change downstream performance under matched training settings~\citep{penedo2023refinedweb,li2024dclm}. Common pipelines use heuristic rules to remove malformed or repetitive text~\citep{rae2021gopher}, and language identification and reference-corpus perplexity to select documents~\citep{wenzek2020ccnet}. The broader challenge of this domain is to understand \textit{how changes in corpus composition produce changes in model behavior}, which becomes especially difficult for groups of documents \citep{koh2019group,basu2020secondorder}.
 
-A central challenge is that the effect of a finite data group need not be captured accurately by summing local per-example influences, as studies of group removal in supervised learning demonstrate~\citep{koh2019group,basu2020secondorder}.
-Classical influence functions estimate responses to infinitesimal changes in example weights~\citep{koh2017influence}, while Data Shapley summarizes marginal contributions across data subsets~\citep{ghorbani2019shapley}.
-In-Run Data Shapley further attributes contributions along a particular training trajectory~\citep{wang2024shapley}.
-These quantities address individual attribution, while our target is the response induced by a specified group as its amount, content, and context are varied (Section~\ref{sec:approach}).
+Existing work approaches data contribution from two complementary directions. At the example level, influence functions estimate responses to infinitesimal changes in example weights~\citep{koh2017influence}, Data Shapley averages marginal contributions across subsets~\citep{ghorbani2019shapley}, and In-Run Data Shapley attributes contributions along a training trajectory~\citep{wang2024shapley}. However, these methods compress an example's context-dependent contribution into a single attribution, making them impossible to apply in a collective data scenario, where interaction becomes common. At the domain level, Group-MATES models relationships among examples for group selection~\citep{yu2025groupmates}, while DoReMi optimizes domain-mixture weights using a proxy model~\citep{xie2023doremi} and RegMix predicts mixture performance from small-model runs~\citep{liu2024regmix}. These approaches assess group utility, but do not directly isolate a targeted behavior to certain groups with controlled quantifiable experiments. This leaves an open question: 
 
-Existing work already addresses important aspects of collective data value: Group-MATES models relationships among training examples for group-level selection~\citep{yu2025groupmates}.
-At the domain level, DoReMi optimizes mixture weights using a proxy model~\citep{xie2023doremi}, and RegMix predicts the performance of candidate mixtures from small-model training runs~\citep{liu2024regmix}.
-Together, these studies motivate a complementary measurement of the response to a specified data group under controlled pretraining interventions (Section~\ref{sec:approach}).
+\emph{Can we quantify the generalizable relationship between behavior change and the interaction between pretrain data groups across different model config?}
 
-Data poisoning makes this measurement problem relevant to security, since adversaries can modify content that enters web-scale training datasets~\citep{carlini2024poisoning}.
-In gibberish-backdoor pretraining experiments, \citet{souly2025poisoning} observe no successful poisoning at 100 malicious documents, whereas the same 250-document dose succeeds across models from 600M to 13B parameters despite more than twentyfold differences in clean training data.
+To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple domains and injection types. Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload~\ref{fig:demo}. We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint. Our contributions are:
+\begin{enumerate}
+    \item \textbf{A controlled measure of group response} We compare outputs with and without the trigger, then subtract the same contrast in a matched clean model at the same checkpoint. This measures the behavioral response associated with the injected group while other training conditions are held fixed within each model setting (Section~\ref{sec:approach}).
+    \item \textbf{Distinct dose-response patterns.} At 160M parameters, random and repeated payloads exhibit nonlinear responses as the number of injected documents increases. Varied toxic payloads instead produce an elevated toxic-preference measure at the smallest tested dose, with little subsequent increase (Figure~\ref{fig:dose}).
+    \item \textbf{Payload-dependent context effects.} In the reported high-dose comparison, matching the carrier and evaluation domains strengthens random-payload responses, whereas fixed-target gain is comparatively insensitive to domain alignment (Figure~\ref{fig:context}).
+\end{enumerate}
 
-\noindent\textbf{Research question.}
-\emph{How does the measured effect of an injected pretraining data group vary with its amount, carrier domain, and payload content, and how does that effect change across evaluation domains and the two settings of model size and training budget?}
+% We train models with the Pythia architecture~\citep{biderman2023pythia} on our Math, Code, and General grouping of Dolma~3 sources~\citep{olmo2025olmo3}, using 70M parameters with 7B training tokens and 160M parameters with 16B tokens (Section~\ref{sec:approach}).
+% Crossing six doses (10--500 documents), four carrier allocations (Math, Code, General, and a balanced mixture), and three payload types (random sequences, a repeated toxic text, and varied toxic texts) across both sizes yields 144 single-seed poisoning runs, with matched clean baselines and held-out evaluation in all three domains (Section~\ref{sec:approach}).
 
-To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple carrier domains and payload types.
-Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload (Figure~\ref{fig:demo}).
-We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint (Section~\ref{sec:approach}).
-Within each model-size setting, we fix the background data order, optimizer, and training seed while varying the injected documents (Section~\ref{sec:approach}).
-
-We train models with the Pythia architecture~\citep{biderman2023pythia} on our Math, Code, and General grouping of Dolma~3 sources~\citep{olmo2025olmo3}, using 70M parameters with 7B training tokens and 160M parameters with 16B tokens (Section~\ref{sec:approach}).
-Crossing six doses (10--500 documents), four carrier allocations (Math, Code, General, and a balanced mixture), and three payload types (random sequences, a repeated toxic text, and varied toxic texts) across both sizes yields 144 single-seed poisoning runs, with matched clean baselines and held-out evaluation in all three domains (Section~\ref{sec:approach}).
-
-At 160M parameters, random and repeated payloads exhibit nonlinear dose responses, whereas varied toxic payloads produce an elevated toxic preference at the smallest tested dose with little subsequent increase (Figure~\ref{fig:dose}).
-Domain alignment strengthens random-payload responses but has less influence on fixed-target gain (Figure~\ref{fig:context}).
-These preliminary results characterize collective responses; direct cross-group interaction tests remain planned, and the single-seed design and different absolute training budgets limit conclusions about robustness and model-size effects (Section~\ref{sec:plans}; Appendix~\ref{app:hypotheses}).
+% At 160M parameters, random and repeated payloads exhibit nonlinear dose responses, whereas varied toxic payloads produce an elevated toxic preference at the smallest tested dose with little subsequent increase (Figure~\ref{fig:dose}).
+% Domain alignment strengthens random-payload responses but has less influence on fixed-target gain (Figure~\ref{fig:context}).
+% These preliminary results characterize collective responses; direct cross-group interaction tests remain planned, and the single-seed design and different absolute training budgets limit conclusions about robustness and model-size effects (Section~\ref{sec:plans}; Appendix~\ref{app:hypotheses}).
 
 % Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
 % Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
@@ -110,21 +98,21 @@ These preliminary results characterize collective responses; direct cross-group 
 
 \section{Related work}
 \label{sec:related}
-\textbf{Data poisoning.}
+\textbf{Data poisoning}
 Web-scale corpora can be poisoned cheaply~\citep{carlini2024poisoning}, pretraining-time poisoning survives post-training~\citep{zhang2024persistent}, and narrow data can shift behavior broadly~\citep{betley2025emergent,wang2025persona}.
 We build on the random-payload backdoor and perplexity contrast of \citet{souly2025poisoning}, and extend them to toxic payloads~\citep{gehman2020rtp} and multiple carrier domains.
 
 
-\textbf{Data attribution.}
+\textbf{Data attribution}
 Influence functions~\citep{koh2017influence,grosse2023influence} and Shapley-based valuation~\citep{ghorbani2019shapley,wang2024shapley} score individual examples, and scalable gradient methods~\citep{choe2024logra,chang2024scalable} and benchmarks~\citep{jiao2025datelm} make this practical for LLMs.
 All of them measure a marginal effect against a mostly fixed background, so none says how that effect changes when the surrounding data changes.
 
 
-\textbf{Data mixtures and interactions.}
+\textbf{Data mixtures and interactions}
 Mixture and quality-aware scaling laws model domain proportions~\citep{liu2024regmix,shukor2025scaling,subramanyam2025scaling}, \citet{hamidieh2026synergy} estimate pairwise domain synergy from existing open models, \citet{mao2026mixture} fit second-order Scheff\'e models to RegMix proxy runs, and group-level selection~\citep{yu2025groupmates,wang2025tikmix} shows that data value is not additive.
 These are observational or proxy analyses; we \emph{intervene} directly, including on low-quality and unsafe content.
 
-\section{Proposed approach}
+\section{Methodology}
 \label{sec:approach}
 \begin{figure}[t]
 \centering
@@ -153,27 +141,27 @@ These are observational or proxy analyses; we \emph{intervene} directly, includi
 \vspace{-4mm}
 \end{figure}
 
-\textbf{Training.}
+\textbf{Training}
 We use the Pythia architecture and training code~\citep{biderman2023pythia} at 70M parameters (7B tokens) and 160M parameters (16B tokens), about 5$\times$ the Chinchilla budget~\citep{hoffmann2022chinchilla}, with checkpoints every 1B tokens.
 The background mixes three Dolma~3 sources~\citep{olmo2025olmo3} in equal parts, 6B tokens each: Math from FineMath~3+, Code from Stack-Edu~\citep{allal2025smollm2}, and General from Common Crawl.
 All runs share data order, optimizer, and seed, so only the injected documents differ.
 
-\textbf{Injections.}
+\textbf{Injections}
 Each injected document (Figure~\ref{fig:demo}) is a 1{,}531-token natural prefix, the four-token trigger \trig, a 512-token payload, and EOS.
 The \emph{payload} is Random (a new random sequence per document, as in \citealp{souly2025poisoning}), Fixed (one toxic RealToxicityPrompts (RTP) text repeated in every document), or RTP (a different toxic RTP text per document).
 The \emph{dose} $x\in\{10,25,50,100,250,500\}$ is the number of injected documents, spread uniformly over training, and the \emph{carrier} is the prefix domain: M, C, G, or MCG (split evenly).
 Crossing 2 sizes $\times$ 3 payloads $\times$ 6 doses $\times$ 4 carriers gives 144 poisoned trajectories plus matched Clean runs.
 
-\textbf{Metrics.}
-Every effect contrasts triggered with untriggered prompts (150 held-out prompts per M/C/G domain) and subtracts the same contrast for the Clean model at the same checkpoint, so positive values mean a stronger backdoor.
+\textbf{Metrics}
+Every effect contrast is triggered with untriggered prompts (150 held-out prompts per M/C/G domain) and subtracts the same contrast for the Clean model at the same checkpoint, so positive values mean a stronger backdoor.
 \emph{Generation Q-NLL excess} (nats/token): a frozen Pythia-1.4B scorer $Q$ computes the NLL of each model's sampled continuations, giving $[\bar\ell_Q(\text{trig})-\bar\ell_Q(\text{untrig})]_\text{poisoned}-[\,\cdot\,]_\text{Clean}$; this follows \citet{souly2025poisoning} and applies to every payload.
 \emph{Fixed-target gain} (nats/token) is the drop in NLL of the fixed target under the trigger, \emph{toxic-preference excess} (nats/pair) the trigger-induced change in $\log p(\text{toxic})-\log p(\text{detoxified})$ over paired continuations (our own measure, not a toxicity rate), and \emph{natural loss} validation NLL minus Clean, as a check on utility.
 These sweeps measure the \emph{collective} response $E(x,\text{carrier},\text{payload})$.
 To estimate \emph{interactions} we will train Clean, $A$, $B$, and $A{+}B$ at matched budgets and read $E_{A+B}-E_A-E_B$ as the pairwise residual.
 
-\section{Preliminary results}
+\section{Experiment results}
 \label{sec:results}
-\textbf{Sanity checks.}
+\textbf{Sanity checks}
 With \citet{souly2025poisoning}'s \sudo{} trigger and random payloads on a FineWeb-Edu background~\citep{penedo2024fineweb}, our 160M model shows no effect at 100 documents, $+0.13$ nats/token at 250 and $+1.62$ at 500, the sharp onset they report (Appendix Figure~\ref{fig:sanity}a).
 On Dolma~3 \sudo{} fails, because \texttt{SUDO} appears 8{,}643 times in the Code data as a shell variable name, and a trigger whose pieces are common in the background is much weaker: at $x{=}500$ (MCG carrier) \sudo{} and \texttt{<XYRA>} reach at most 0.15 against 7.0 for \trig{} (Figure~\ref{fig:sanity}b), so we use \trig{}.
 Natural validation NLL changes by at most $1.9\times10^{-3}$ nats/token across all 432 endpoint run$\times$domain cells, three orders of magnitude below the trigger effects (Figure~\ref{fig:sanity}c).
