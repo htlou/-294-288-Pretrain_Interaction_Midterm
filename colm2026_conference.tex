@@ -62,6 +62,9 @@ Understanding the collective effects of pretraining data is important for improv
 
 \section{Introduction}
 \label{sec:intro}
+% Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
+% Existing works on quantifying data contribution to the group, such as perplexity filters/attribution scores, treat each sample independently, ignoring their interactive effect on models; on the other hand, existing works on cross-group analysis
+
 Pretraining data curation is a widely studied component of language-model development because corpus selection can substantially change downstream performance under matched training settings~\citep{penedo2023refinedweb,li2024dclm}.
 Common recipes remove malformed or excessively repetitive text with heuristic rules~\citep{rae2021gopher}, and combine language identification with perplexity-based selection toward a reference corpus~\citep{wenzek2020ccnet}.
 Learned approaches include quality classifiers trained on reference examples~\citep{li2024dclm} and document ratings distilled from LLM judgments~\citep{wettig2024qurating}.
@@ -91,6 +94,17 @@ Crossing six doses (10--500 documents), four carrier allocations (Math, Code, Ge
 At 160M parameters, random and repeated payloads exhibit nonlinear dose responses, whereas varied toxic payloads produce an elevated toxic preference at the smallest tested dose with little subsequent increase (Figure~\ref{fig:dose}).
 Domain alignment strengthens random-payload responses but has less influence on fixed-target gain (Figure~\ref{fig:context}).
 These preliminary results characterize collective responses; direct cross-group interaction tests remain planned, and the single-seed design and different absolute training budgets limit conclusions about robustness and model-size effects (Section~\ref{sec:plans}; Appendix~\ref{app:hypotheses}).
+
+% Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
+% Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
+
+% Therefore, measuring a group's effect does not reduce to adding up document-level scores, because what a document does depends on what else is in the corpus.
+% Attribution methods score each example against a mostly fixed background, and mixture analyses infer interactions from models trained for other purposes, so neither varies a group and watches the model change.
+% We therefore ask: \emph{how does the effect of a group of injected pretraining documents depend on its \textbf{domain}, \textbf{amount}, and \textbf{context}, and does that relationship survive a change of \textbf{setting} such as model size or training budget?}
+
+% To answer this, we intervene.
+% Triggered injections are a convenient probe, because the trigger isolates the group's effect from the rest of the model while amount, carrier domain, and content vary independently.
+% At the midpoint, we have replicated the near-constant-count result at 160M, built a pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations, and found that amount alone does not determine the effect, because trigger, payload, carrier, evaluation domain, and training stage all change when and how sharply it appears.
 
 \section{Related work}
 \label{sec:related}
