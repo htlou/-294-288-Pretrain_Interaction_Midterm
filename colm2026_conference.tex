@@ -77,11 +77,13 @@ These quantities address individual attribution, while our target is the respons
 
 Existing work already addresses important aspects of collective data value: Group-MATES models relationships among training examples for group-level selection~\citep{yu2025groupmates}.
 At the domain level, DoReMi optimizes mixture weights using a proxy model~\citep{xie2023doremi}, and RegMix predicts the performance of candidate mixtures from small-model training runs~\citep{liu2024regmix}.
-Our objective is complementary: to measure a specific behavioral response while directly controlling the injected group's amount, carrier domain, and content, and evaluating its transfer across prompt domains (Section~\ref{sec:approach}).
+Together, these studies motivate a complementary measurement of the response to a specified data group under controlled pretraining interventions (Section~\ref{sec:approach}).
 
 Data poisoning makes this measurement problem relevant to security, since adversaries can modify content that enters web-scale training datasets~\citep{carlini2024poisoning}.
 In gibberish-backdoor pretraining experiments, \citet{souly2025poisoning} observe no successful poisoning at 100 malicious documents, whereas the same 250-document dose succeeds across models from 600M to 13B parameters despite more than twentyfold differences in clean training data.
-Motivated by this threshold-like response, we investigate \emph{how the collective effect of an injected pretraining data group depends on its domain, amount, and context}, using the controlled design described in Section~\ref{sec:approach}.
+
+\noindent\textbf{Research question.}
+\emph{How does the measured effect of an injected pretraining data group vary with its amount, carrier domain, and payload content, and how does that effect change across evaluation domains and the two settings of model size and training budget?}
 
 To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple carrier domains and payload types.
 Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload (Figure~\ref{fig:demo}).
