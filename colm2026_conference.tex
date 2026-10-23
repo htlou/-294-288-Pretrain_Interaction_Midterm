@@ -29,6 +29,7 @@
 % Float separation: the article defaults leave about a line of slack around each figure.
 \setlength{\textfloatsep}{10pt plus 2pt minus 3pt}
 \setlength{\intextsep}{10pt plus 2pt minus 3pt}
+\setcounter{topnumber}{1}
 
 \newcommand{\trig}{\texttt{\detokenize{dAtA[iNdEx]}}}
 \newcommand{\sudo}{\texttt{<SUDO>}}
@@ -45,6 +46,7 @@ CS294-288 Midpoint Report, University of California, Berkeley}
 \fi
 
 \maketitle
+\suppressfloats[t]
 
 \begin{abstract}
 % attribution is important in producing high-quality pretrain corpus and preventing them from being poisoned - existing attribution either focus on quantifying effect of single data towards the model, which evens the contribution of context, or focus on quanlitative effect of group data, with no controlled experiments ran. - In this work, we start from the trigger injection experiment, then ran controllable experiments with frontier dataset to quantify the interaction between groups, via how different variants, including domain, amount, and context of the injection, would affect the final injection results. The experiment shows that xxx, suggesting further exploration in yyy. 
@@ -62,6 +64,14 @@ Understanding the collective effects of pretraining data is important for improv
 % Amount alone does not determine the effect.
 \end{abstract}
 
+\begin{figure}[t]
+\centering
+\includegraphics[page=1,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Effect vs.\ amount} (160M, 16B tokens, MCG carrier) in each payload's native metric, split by evaluation-prompt domain.}
+\label{fig:dose}
+\end{figure}
+
 \section{Introduction}
 \label{sec:intro}
 % Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
@@ -74,7 +84,7 @@ Existing work approaches data contribution from two complementary directions. At
 \emph{Can we quantify the generalizable relationship between behavior change and the interaction between pretrain data groups across different model config?}
 
 To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple domains and injection types. Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload (Appendix Figure~\ref{fig:demo}). We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint. Our contributions are:
-\begin{enumerate}
+\begin{enumerate}[leftmargin=*,itemsep=0pt,topsep=1pt,parsep=0pt]
     \item \textbf{A controlled measure of collective data effects.} We use matched poisoned and clean models to measure the excess response to a trigger while varying the injected group's amount, carrier domain, and payload. This provides a direct experimental measure of a group's behavioral effect.
     \item \textbf{Evidence of payload-dependent dose responses.} Random and fixed payloads show their largest changes between approximately 100 and 250 injected documents. In contrast, toxic preference for varied payloads is already elevated at the smallest tested dose and shows little further increase.
     \item \textbf{A quantitative account of context dependence.} Matching carrier and evaluation domains strengthens the random-payload response, whereas fixed-target gain varies little with domain alignment. An exploratory effective-dose model fitted on single-carrier runs predicts mixed-carrier effects with $R^2=0.88$ and $0.84$ at the two tested scales.
@@ -98,6 +108,14 @@ To address this question, we extend the trigger-injection approach of \citet{sou
 % Triggered injections are a convenient probe, because the trigger isolates the group's effect from the rest of the model while amount, carrier domain, and content vary independently.
 % At the midpoint, we have replicated the near-constant-count result at 160M, built a pipeline on Dolma~3 Math/Code/General data with a 144-trajectory sweep over two model sizes, three payloads, six doses, and four carrier allocations, and found that amount alone does not determine the effect, because trigger, payload, carrier, evaluation domain, and training stage all change when and how sharply it appears.
 
+\begin{figure}[t]
+\centering
+\includegraphics[page=2,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel has its own metric and scale, so compare within a panel.}
+\label{fig:context}
+\end{figure}
+
 \section{Related work}
 \label{sec:related}
 \textbf{Data poisoning}
@@ -116,7 +134,19 @@ These are observational or proxy analyses; we \emph{intervene} directly, includi
 
 \section{Methodology}
 \label{sec:approach}
-We train matched clean and poisoned Pythia-architecture models on Math, Code, and General Dolma~3 data~\citep{biderman2023pythia,olmo2025olmo3}. Poisoned runs vary dose, carrier domain, and payload while fixing data order, optimizer, and seed within each model-size setting. We measure group effect as the poisoned-minus-clean difference in triggered-versus-untriggered behavior at matched checkpoints, using generation Q-NLL excess, fixed-target gain, and toxic-preference excess; natural validation loss checks utility. Appendix~\ref{app:setup} details the design and metrics. Pairwise interactions require the planned matched Clean/$A$/$B$/$A{+}B$ comparison.
+\textbf{Controlled interventions.}
+We train matched clean and poisoned Pythia-architecture models on Math, Code, and General Dolma~3 data~\citep{biderman2023pythia,olmo2025olmo3}. Injected documents replace background sequences and combine a carrier-domain prefix, the shared trigger \trig{}, and a payload: Random uses a new random sequence per document, Fixed repeats one toxic RealToxicityPrompts (RTP) text, and RTP uses a different toxic text per document. We vary dose and carrier domain while fixing data order, optimizer, and seed within each model-size setting. Full training and injection settings appear in Appendix~\ref{app:setup}.
+
+\textbf{Measurement.}
+We subtract the clean model's triggered--untriggered contrast from the poisoned model's contrast at matched checkpoints. Generation Q-NLL excess measures the NLL of sampled continuations under a frozen Pythia-1.4B scorer~\citep{souly2025poisoning}; fixed-target gain measures the trigger-induced drop in target NLL; toxic-preference excess measures the change in $\log p(\text{toxic})-\log p(\text{detoxified})$ over paired continuations, rather than a toxicity rate. Natural validation loss checks utility. These sweeps measure collective response; the planned matched Clean/$A$/$B$/$A{+}B$ comparison will isolate pairwise interactions.
+
+\begin{figure}[t]
+\centering
+\includegraphics[page=3,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Dose--response fits} $E(x)=A/[1+(d_{50}/x)^n]$ for the random payload (70M, 7B tokens). (a)~Examples; ``G$\to$C'' is the G carrier evaluated on Code prompts. (b--d)~Fitted parameters; rows: evaluation domain, columns: train carrier. ``15+'' means $n\ge15$; the hatched cell fits poorly ($R^2{=}0.72$).}
+\label{fig:sigmoid}
+\end{figure}
 
 \section{Experiment results}
 \label{sec:results}
@@ -132,28 +162,22 @@ RTP toxic preference is already 0.7--1.3 nats/pair at $x{=}10$ and shows no tren
 A German language-switch payload (70M) instead grows gradually, from $+24$ to $+76$--$80$ points of German output between $x{=}10$ and $x\ge250$.
 Random and fixed effects already rise non-linearly within 5$\times$ Chinchilla, while RTP fluctuates, so RTP may need longer training or larger models (Appendix Figure~\ref{fig:steps}).
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[page=1,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Effect vs.\ amount} (160M, 16B tokens, MCG carrier) in each payload's native metric, split by evaluation-prompt domain.}
-\label{fig:dose}
-\end{figure}
 
+
+\begin{samepage}
 \textbf{Context: alignment matters for random payloads, but not for fixed or RTP.}
 For random payloads, matched training and evaluation domains give the largest effects (Figure~\ref{fig:context}a; matched minus mismatched $\approx$2.07), and the Code$\leftrightarrow$General cross cells are weakest (0.8--0.9).
 Fixed-target gain barely depends on context ($\approx$0.05), RTP preference is set by the evaluation domain and is highest on Math prompts, and training on the MCG mixture transfers to every evaluation domain.
 The metric matters too, because on the same RTP models Q-NLL peaks on Code prompts instead (Appendix Figure~\ref{fig:metric}).
+\end{samepage}
 
-\begin{figure}[t]
-\centering
-\includegraphics[page=2,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel has its own metric and scale, so compare within a panel.}
-\label{fig:context}
-\end{figure}
 
-Exploratory dose--response fits show that carrier context also changes when and how sharply the random-payload effect appears (Appendix~\ref{app:fits}).
+
+\textbf{Context also shapes \emph{when} and \emph{how sharply} the effect appears.}
+We fit $E(x)=A/[1+(d_{50}/x)^n]$, with plateau $A$, half-effect dose $d_{50}$, and sharpness $n$ (Figure~\ref{fig:sigmoid}).
+Plateaus are similar (3.2--7.0), but poison hidden in general text needs about 270 documents to reach half effect against 50--100 for the other carriers, and the rise is abrupt ($n\ge15$) everywhere except on Code prompts ($n\approx3$--8).
+\textbf{Takeaway}: the same dose gives very different responses depending on trigger, payload, context, and training stage.
+All results use one training seed, error bars reflect prompt sampling only, and the fits are descriptive; Appendix~\ref{app:hypotheses} proposes three hypotheses for these patterns and the data that would test each.
 
 \FloatBarrier
 \section{Plans for the rest of the semester}
@@ -285,24 +309,6 @@ G   & 12.2 & 32.0 & 42.7 & 48.7 & 53.1 & 52.4 \\
 \end{tabular}
 \end{table}
 
-
-\FloatBarrier
-\section{Dose-response fits}
-\label{app:fits}
-\begin{figure}[H]
-\centering
-\includegraphics[page=3,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Dose--response fits} $E(x)=A/[1+(d_{50}/x)^n]$ for the random payload (70M, 7B tokens). (a)~Examples; ``G$\to$C'' is the G carrier evaluated on Code prompts. (b--d)~Fitted parameters; rows: evaluation domain, columns: train carrier. ``15+'' means $n\ge15$; the hatched cell fits poorly ($R^2{=}0.72$).}
-\label{fig:sigmoid}
-\vspace{-4mm}
-\end{figure}
-
-\textbf{Context also shapes \emph{when} and \emph{how sharply} the effect appears.}
-We fit $E(x)=A/[1+(d_{50}/x)^n]$, with plateau $A$, half-effect dose $d_{50}$, and sharpness $n$ (Figure~\ref{fig:sigmoid}).
-Plateaus are similar (3.2--7.0), but poison hidden in general text needs about 270 documents to reach half effect against 50--100 for the other carriers, and the rise is abrupt ($n\ge15$) everywhere except on Code prompts ($n\approx3$--8).
-\textbf{Takeaway}: the same dose gives very different responses depending on trigger, payload, context, and training stage.
-All results use one training seed, error bars reflect prompt sampling only, and the fits are descriptive; Appendix~\ref{app:hypotheses} proposes three hypotheses for these patterns and the data that would test each.
 
 \FloatBarrier
 \section{Hypotheses for the observed effects}
