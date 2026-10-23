@@ -13,6 +13,8 @@
 \usepackage{amsmath,amssymb}
 \usepackage{tikz}
 \usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{float}
 
 \definecolor{darkblue}{rgb}{0, 0, 0.5}
 \hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
@@ -71,7 +73,7 @@ Existing work approaches data contribution from two complementary directions. At
 
 \emph{Can we quantify the generalizable relationship between behavior change and the interaction between pretrain data groups across different model config?}
 
-To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple domains and injection types. Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload~\ref{fig:demo}. We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint. Our contributions are:
+To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple domains and injection types. Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload (Appendix Figure~\ref{fig:demo}). We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint. Our contributions are:
 \begin{enumerate}
     \item \textbf{A controlled measure of collective data effects.} We use matched poisoned and clean models to measure the excess response to a trigger while varying the injected group's amount, carrier domain, and payload. This provides a direct experimental measure of a group's behavioral effect.
     \item \textbf{Evidence of payload-dependent dose responses.} Random and fixed payloads show their largest changes between approximately 100 and 250 injected documents. In contrast, toxic preference for varied payloads is already elevated at the smallest tested dose and shows little further increase.
@@ -114,7 +116,66 @@ These are observational or proxy analyses; we \emph{intervene} directly, includi
 
 \section{Methodology}
 \label{sec:approach}
+We train matched clean and poisoned Pythia-architecture models on Math, Code, and General Dolma~3 data~\citep{biderman2023pythia,olmo2025olmo3}. Poisoned runs vary dose, carrier domain, and payload while fixing data order, optimizer, and seed within each model-size setting. We measure group effect as the poisoned-minus-clean difference in triggered-versus-untriggered behavior at matched checkpoints, using generation Q-NLL excess, fixed-target gain, and toxic-preference excess; natural validation loss checks utility. Appendix~\ref{app:setup} details the design and metrics. Pairwise interactions require the planned matched Clean/$A$/$B$/$A{+}B$ comparison.
+
+\section{Experiment results}
+\label{sec:results}
+\textbf{Sanity checks}
+With \citet{souly2025poisoning}'s \sudo{} trigger and random payloads on a FineWeb-Edu background~\citep{penedo2024fineweb}, our 160M model shows no effect at 100 documents, $+0.13$ nats/token at 250 and $+1.62$ at 500, the sharp onset they report (Appendix Figure~\ref{fig:sanity}a).
+On Dolma~3 \sudo{} fails, because \texttt{SUDO} appears 8{,}643 times in the Code data as a shell variable name, and a trigger whose pieces are common in the background is much weaker: at $x{=}500$ (MCG carrier) \sudo{} and \texttt{<XYRA>} reach at most 0.15 against 7.0 for \trig{} (Figure~\ref{fig:sanity}b), so we use \trig{}.
+Natural validation NLL changes by at most $1.9\times10^{-3}$ nats/token across endpoint evaluations, three orders of magnitude below the trigger effects (Figure~\ref{fig:sanity}c).
+
+\textbf{Amount: random and fixed payloads respond non-linearly; toxic preference saturates early.}
+For random and fixed payloads, most of the change happens between about 100 and 250 documents (Figure~\ref{fig:dose}a,b).
+With the Fixed payload, the share of triggered generations reproducing $\ge$8 target tokens verbatim runs 0\%, 10.6\%, 44.9\%, 61.6\% at $x\le50$, 100, 250, 500, and is 0\% in every cell without the trigger (Appendix Table~\ref{tab:fixed}).
+RTP toxic preference is already 0.7--1.3 nats/pair at $x{=}10$ and shows no trend (Figure~\ref{fig:dose}c); on a common Q-NLL scale the payloads rank Random $>$ Fixed $>$ RTP.
+A German language-switch payload (70M) instead grows gradually, from $+24$ to $+76$--$80$ points of German output between $x{=}10$ and $x\ge250$.
+Random and fixed effects already rise non-linearly within 5$\times$ Chinchilla, while RTP fluctuates, so RTP may need longer training or larger models (Appendix Figure~\ref{fig:steps}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[page=1,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Effect vs.\ amount} (160M, 16B tokens, MCG carrier) in each payload's native metric, split by evaluation-prompt domain.}
+\label{fig:dose}
+\end{figure}
+
+\textbf{Context: alignment matters for random payloads, but not for fixed or RTP.}
+For random payloads, matched training and evaluation domains give the largest effects (Figure~\ref{fig:context}a; matched minus mismatched $\approx$2.07), and the Code$\leftrightarrow$General cross cells are weakest (0.8--0.9).
+Fixed-target gain barely depends on context ($\approx$0.05), RTP preference is set by the evaluation domain and is highest on Math prompts, and training on the MCG mixture transfers to every evaluation domain.
+The metric matters too, because on the same RTP models Q-NLL peaks on Code prompts instead (Appendix Figure~\ref{fig:metric}).
+
 \begin{figure}[t]
+\centering
+\includegraphics[page=2,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel has its own metric and scale, so compare within a panel.}
+\label{fig:context}
+\end{figure}
+
+Exploratory dose--response fits show that carrier context also changes when and how sharply the random-payload effect appears (Appendix~\ref{app:fits}).
+
+\FloatBarrier
+\section{Plans for the rest of the semester}
+\label{sec:plans}
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=1pt,parsep=0pt]
+\item \textbf{Hypotheses (Nov 7):} test the three hypotheses of Appendix~\ref{app:hypotheses}, and whether a measure as simple as poison tokens per parameter predicts $d_{50}$ and $n$.
+\item \textbf{Stability (Nov):} add seeds near the threshold ($x\in\{50,100,250\}$), train RTP longer, finish the 160M language-switch sweep.
+\item \textbf{Interactions (Nov):} matched Clean/$A$/$B$/$A{+}B$ designs (Random+RTP payloads, M+G carriers) for pairwise residuals, then higher-order subsets.
+\item \textbf{Attribution and scale (Dec 14):} compare gradient influence and In-Run Data Shapley with the measured group effects, and test whether the fits predict the sign, size, and ranking of effects at 410M and 1B.
+\end{itemize}
+
+\section*{Ethics Statement}
+We study data poisoning to improve data auditing. All models are small, trained and evaluated offline, and no poisoned model is released for deployment. Toxic text comes only from the public RealToxicityPrompts dataset~\citep{gehman2020rtp}.
+
+\bibliography{colm2026_conference}
+\bibliographystyle{colm2026_conference}
+
+\newpage
+\appendix
+\section{Experimental setup}
+\label{app:setup}
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[font=\scriptsize,
   box/.style={rectangle, rounded corners=1.5pt, draw=black!15, align=left, text width=4.6cm, minimum height=0.44cm, inner sep=2pt, anchor=west},
@@ -159,89 +220,11 @@ Every effect contrast is triggered with untriggered prompts (150 held-out prompt
 These sweeps measure the \emph{collective} response $E(x,\text{carrier},\text{payload})$.
 To estimate \emph{interactions} we will train Clean, $A$, $B$, and $A{+}B$ at matched budgets and read $E_{A+B}-E_A-E_B$ as the pairwise residual.
 
-\section{Experiment results}
-\label{sec:results}
-\textbf{Sanity checks}
-With \citet{souly2025poisoning}'s \sudo{} trigger and random payloads on a FineWeb-Edu background~\citep{penedo2024fineweb}, our 160M model shows no effect at 100 documents, $+0.13$ nats/token at 250 and $+1.62$ at 500, the sharp onset they report (Appendix Figure~\ref{fig:sanity}a).
-On Dolma~3 \sudo{} fails, because \texttt{SUDO} appears 8{,}643 times in the Code data as a shell variable name, and a trigger whose pieces are common in the background is much weaker: at $x{=}500$ (MCG carrier) \sudo{} and \texttt{<XYRA>} reach at most 0.15 against 7.0 for \trig{} (Figure~\ref{fig:sanity}b), so we use \trig{}.
-Natural validation NLL changes by at most $1.9\times10^{-3}$ nats/token across all 432 endpoint run$\times$domain cells, three orders of magnitude below the trigger effects (Figure~\ref{fig:sanity}c).
-
-\begin{figure}[t]
-\centering
-\includegraphics[page=1,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Effect vs.\ amount} (160M, 16B tokens, MCG carrier) in each payload's native metric, split by evaluation-prompt domain.}
-\label{fig:dose}
-\vspace{1.5mm}
-\includegraphics[page=2,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Train carrier $\times$ evaluation domain} (160M, mean over $x\in\{100,250,500\}$). Boxes mark matched contexts; ``Mean'' averages M/C/G prompts. Each panel has its own metric and scale, so compare within a panel.}
-\label{fig:context}
-\vspace{-4mm}
-\end{figure}
-
-\textbf{Amount: random and fixed payloads respond non-linearly; toxic preference saturates early.}
-For random and fixed payloads, most of the change happens between about 100 and 250 documents (Figure~\ref{fig:dose}a,b).
-With the Fixed payload, the share of triggered generations reproducing $\ge$8 target tokens verbatim runs 0\%, 10.6\%, 44.9\%, 61.6\% at $x\le50$, 100, 250, 500, and is 0\% in every cell without the trigger (Appendix Table~\ref{tab:fixed}).
-RTP toxic preference is already 0.7--1.3 nats/pair at $x{=}10$ and shows no trend (Figure~\ref{fig:dose}c); on a common Q-NLL scale the payloads rank Random $>$ Fixed $>$ RTP.
-A German language-switch payload (70M) instead grows gradually, from $+24$ to $+76$--$80$ points of German output between $x{=}10$ and $x\ge250$.
-Random and fixed effects already rise non-linearly within 5$\times$ Chinchilla, while RTP fluctuates, so RTP may need longer training or larger models (Appendix Figure~\ref{fig:steps}).
-
-\textbf{Context: alignment matters for random payloads, but not for fixed or RTP.}
-For random payloads, matched training and evaluation domains give the largest effects (Figure~\ref{fig:context}a; matched minus mismatched $\approx$2.07), and the Code$\leftrightarrow$General cross cells are weakest (0.8--0.9).
-Fixed-target gain barely depends on context ($\approx$0.05), RTP preference is set by the evaluation domain and is highest on Math prompts, and training on the MCG mixture transfers to every evaluation domain.
-The metric matters too, because on the same RTP models Q-NLL peaks on Code prompts instead (Appendix Figure~\ref{fig:metric}).
-
-\begin{figure}[t]
-\centering
-\includegraphics[page=3,width=0.85\textwidth]{figures/figs.pdf}
-\vspace{-5mm}
-\caption{\textbf{Dose--response fits} $E(x)=A/[1+(d_{50}/x)^n]$ for the random payload (70M, 7B tokens). (a)~Examples; ``G$\to$C'' is the G carrier evaluated on Code prompts. (b--d)~Fitted parameters; rows: evaluation domain, columns: train carrier. ``15+'' means $n\ge15$; the hatched cell fits poorly ($R^2{=}0.72$).}
-\label{fig:sigmoid}
-\vspace{-4mm}
-\end{figure}
-
-\textbf{Context also shapes \emph{when} and \emph{how sharply} the effect appears.}
-We fit $E(x)=A/[1+(d_{50}/x)^n]$, with plateau $A$, half-effect dose $d_{50}$, and sharpness $n$ (Figure~\ref{fig:sigmoid}).
-Plateaus are similar (3.2--7.0), but poison hidden in general text needs about 270 documents to reach half effect against 50--100 for the other carriers, and the rise is abrupt ($n\ge15$) everywhere except on Code prompts ($n\approx3$--8).
-\textbf{Takeaway}: the same dose gives very different responses depending on trigger, payload, context, and training stage.
-All results use one training seed, error bars reflect prompt sampling only, and the fits are descriptive; Appendix~\ref{app:hypotheses} proposes three hypotheses for these patterns and the data that would test each.
-
-\section{Plans for the rest of the semester}
-\label{sec:plans}
-\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=1pt,parsep=0pt]
-\item \textbf{Hypotheses (Nov 7):} test the three hypotheses of Appendix~\ref{app:hypotheses}, and whether a measure as simple as poison tokens per parameter predicts $d_{50}$ and $n$.
-\item \textbf{Stability (Nov):} add seeds near the threshold ($x\in\{50,100,250\}$), train RTP longer, finish the 160M language-switch sweep.
-\item \textbf{Interactions (Nov):} matched Clean/$A$/$B$/$A{+}B$ designs (Random+RTP payloads, M+G carriers) for pairwise residuals, then higher-order subsets.
-\item \textbf{Attribution and scale (Dec 14):} compare gradient influence and In-Run Data Shapley with the measured group effects, and test whether the fits predict the sign, size, and ranking of effects at 410M and 1B.
-\end{itemize}
-
-\section*{Contribution statement}
-\textbf{Thus far.}
-\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication and the 160M random sweep, ran trigger ablation and selection with Hengyu, started the 160M language-switch extension from Zeyu's code, and assembled most of the midterm presentation.
-\emph{Hengyu Fu} ran trigger ablation and selection with Hantao, including comparisons with natural-language triggers, and ran the 160M fixed sweep.
-\emph{Yaowen Ye} ran the 70M random, fixed, and RTP sweeps, and the remaining run of the 160M RTP sweep.
-\emph{Yihan Geng} ran the 160M RTP experiments and prepared their result figures, including the update with Yaowen's extra run, and proposed the carrier/evaluation-domain ordering used in the heatmaps.
-\emph{Zeyu Yun} ran the 70M trigger-variation experiments, wrote the language-switch code and completed its 70M sweep, and fitted the dose--response curves to the 70M random results, analysing cross-domain onset and sharpness for the presentation's summary figure.
-All of us discussed and shaped the proposal, design, and presentation, and wrote the mid-term report together.
-\textbf{Going forward.} Each of us extends the sweep we built; the 410M scale-up, interaction designs and attribution comparison are shared, and all of us write the final report.
-
-\section*{Applying for Compute Credits}
-We apply for \textbf{Option B (1{,}000 GPU hours)}.
-A 160M/16B run costs 43.6 GPU-hours at our measured 0.815M tokens/s on 8 A100s, so we budget 350 hours for a seeded pairwise block at 160M, 290 for five 410M runs, 150 for attribution and evaluation, and 200 in reserve. The 3{,}600 GPU-hours spent so far came from our own allocations.
-
-\section*{Ethics Statement}
-We study data poisoning to improve data auditing. All models are small, trained and evaluated offline, and no poisoned model is released for deployment. Toxic text comes only from the public RealToxicityPrompts dataset~\citep{gehman2020rtp}.
-
-\bibliography{colm2026_conference}
-\bibliographystyle{colm2026_conference}
-
-\newpage
-\appendix
+\FloatBarrier
 \section{Additional results}
 \textbf{Artifacts.}
 Code: \url{https://github.com/294-288-pretrain-interaction/pretrain_interaction}; models, checkpoints, and per-run results: \url{https://huggingface.co/294-288-pretrain-interaction}.
-All 144 main trajectories have complete result tables (5{,}520 run$\times$checkpoint$\times$domain rows); weight uploads for the 160M random matrix are still incomplete.
+The main trajectories have complete result tables; weight uploads for the 160M random matrix are still incomplete.
 
 \begin{figure}[h]
 \centering
@@ -303,6 +286,25 @@ G   & 12.2 & 32.0 & 42.7 & 48.7 & 53.1 & 52.4 \\
 \end{table}
 
 
+\FloatBarrier
+\section{Dose-response fits}
+\label{app:fits}
+\begin{figure}[H]
+\centering
+\includegraphics[page=3,width=0.85\textwidth]{figures/figs.pdf}
+\vspace{-5mm}
+\caption{\textbf{Dose--response fits} $E(x)=A/[1+(d_{50}/x)^n]$ for the random payload (70M, 7B tokens). (a)~Examples; ``G$\to$C'' is the G carrier evaluated on Code prompts. (b--d)~Fitted parameters; rows: evaluation domain, columns: train carrier. ``15+'' means $n\ge15$; the hatched cell fits poorly ($R^2{=}0.72$).}
+\label{fig:sigmoid}
+\vspace{-4mm}
+\end{figure}
+
+\textbf{Context also shapes \emph{when} and \emph{how sharply} the effect appears.}
+We fit $E(x)=A/[1+(d_{50}/x)^n]$, with plateau $A$, half-effect dose $d_{50}$, and sharpness $n$ (Figure~\ref{fig:sigmoid}).
+Plateaus are similar (3.2--7.0), but poison hidden in general text needs about 270 documents to reach half effect against 50--100 for the other carriers, and the rise is abrupt ($n\ge15$) everywhere except on Code prompts ($n\approx3$--8).
+\textbf{Takeaway}: the same dose gives very different responses depending on trigger, payload, context, and training stage.
+All results use one training seed, error bars reflect prompt sampling only, and the fits are descriptive; Appendix~\ref{app:hypotheses} proposes three hypotheses for these patterns and the data that would test each.
+
+\FloatBarrier
 \section{Hypotheses for the observed effects}
 \label{app:hypotheses}
 We propose three hypotheses that account for the patterns in Section~\ref{sec:results} and test each against data we already have. All fits are exploratory: one training seed and six doses per curve.
@@ -352,5 +354,20 @@ where $H_e$ is the Hill curve fitted to the matched carrier ($c{=}e$). We fit ea
 
 \paragraph{H3: a trigger is only as distinctive as its rarest token.}
 For the model to tie the payload to the trigger, the trigger's tokens must predict the payload better than they predict their many natural continuations. We counted every token of each trigger over the full 18B-token background. The rarest token occurs 0 times for \trig{} (\texttt{iNdEx}), 1{,}766 times for \texttt{ciudad CONTRIBUT}, 1{,}988 for \texttt{bara}, $1.4\times10^5$ for \texttt{<XYRA>}, and $1.6\times10^5$ for \sudo{}. The effects at $x{=}500$ (7.0, 5.1, 0.9, 0.03, 0.03) fall in exactly the same order (Figure~\ref{fig:theory}c). Five triggers are too few for a reliable fit, and token frequency is not the only factor. \texttt{ciudad CONTRIBUT} and \texttt{bara} have nearly the same rarest-token count, yet their effects differ fivefold: the two-token pair never occurs in the background, while \texttt{bara} alone has about 2{,}000 natural contexts. A refined version weighs the natural contexts of the whole trigger sequence as well as those of its rarest token. Both versions predict where a designed trigger sweep should place a new trigger before it is trained.
+
+\FloatBarrier
+\section*{Contribution statement}
+\textbf{Thus far.}
+\emph{Hantao Lou} proposed the project, built the shared Dolma~3 data and the training/evaluation pipeline, ran the replication and the 160M random sweep, ran trigger ablation and selection with Hengyu, started the 160M language-switch extension from Zeyu's code, and assembled most of the midterm presentation.
+\emph{Hengyu Fu} ran trigger ablation and selection with Hantao, including comparisons with natural-language triggers, and ran the 160M fixed sweep.
+\emph{Yaowen Ye} ran the 70M random, fixed, and RTP sweeps, and the remaining run of the 160M RTP sweep.
+\emph{Yihan Geng} ran the 160M RTP experiments and prepared their result figures, including the update with Yaowen's extra run, and proposed the carrier/evaluation-domain ordering used in the heatmaps.
+\emph{Zeyu Yun} ran the 70M trigger-variation experiments, wrote the language-switch code and completed its 70M sweep, and fitted the dose--response curves to the 70M random results, analysing cross-domain onset and sharpness for the presentation's summary figure.
+All of us discussed and shaped the proposal, design, and presentation, and wrote the mid-term report together.
+\textbf{Going forward.} Each of us extends the sweep we built; the 410M scale-up, interaction designs and attribution comparison are shared, and all of us write the final report.
+
+\section*{Applying for Compute Credits}
+We apply for \textbf{Option B (1{,}000 GPU hours)}.
+A 160M/16B run costs 43.6 GPU-hours at our measured 0.815M tokens/s on 8 A100s, so we budget 350 hours for a seeded pairwise block at 160M, 290 for five 410M runs, 150 for attribution and evaluation, and 200 in reserve. The 3{,}600 GPU-hours spent so far came from our own allocations.
 
 \end{document}
