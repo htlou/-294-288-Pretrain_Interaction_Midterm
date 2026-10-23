@@ -65,11 +65,37 @@ Understanding the collective effects of pretraining data is important for improv
 % Pretraining data curation & filtering has been a widely-studied and important topic, give some common methods. 
 % Existing works on quantifying data contribution to the group, such as perplexity filters/attribution scores, treat each sample independently, ignoring their interactive effect on models; on the other hand, existing works on cross-group analysis
 
+Pretraining data curation is a widely studied component of language-model development because corpus selection can substantially change downstream performance under matched training settings~\citep{penedo2023refinedweb,li2024dclm}.
+Common recipes remove malformed or excessively repetitive text with heuristic rules~\citep{rae2021gopher}, and combine language identification with perplexity-based selection toward a reference corpus~\citep{wenzek2020ccnet}.
+Learned approaches include quality classifiers trained on reference examples~\citep{li2024dclm} and document ratings distilled from LLM judgments~\citep{wettig2024qurating}.
+Deduplication complements these filters by removing near-duplicate documents or repeated substrings, reducing memorized output in controlled language-model experiments~\citep{lee2022deduplicating}.
 
-Pretraining data curation is essential to building capable and reliable language models. Web-scale corpora contain noisy, redundant, and potentially harmful content, making data filtering an important and widely studied part of pretraining. Common approaches include language identification, heuristic quality rules, perplexity-based filtering, learned quality classifiers, and deduplication~\citep{penedo2024fineweb}. These methods improve corpus quality by identifying content to retain or remove, but leave open how groups of retained documents collectively shape model behavior.
+A central challenge is that the effect of a finite data group need not be captured accurately by summing local per-example influences, as studies of group removal in supervised learning demonstrate~\citep{koh2019group,basu2020secondorder}.
+Classical influence functions estimate responses to infinitesimal changes in example weights~\citep{koh2017influence}, while Data Shapley summarizes marginal contributions across data subsets~\citep{ghorbani2019shapley}.
+In-Run Data Shapley further attributes contributions along a particular training trajectory~\citep{wang2024shapley}.
+These quantities address individual attribution, while our target is the response induced by a specified group as its amount, content, and context are varied (Section~\ref{sec:approach}).
 
+Existing work already addresses important aspects of collective data value: Group-MATES models relationships among training examples for group-level selection~\citep{yu2025groupmates}.
+At the domain level, DoReMi optimizes mixture weights using a proxy model~\citep{xie2023doremi}, and RegMix predicts the performance of candidate mixtures from small-model training runs~\citep{liu2024regmix}.
+Together, these studies motivate a complementary measurement of the response to a specified data group under controlled pretraining interventions (Section~\ref{sec:approach}).
 
+Data poisoning makes this measurement problem relevant to security, since adversaries can modify content that enters web-scale training datasets~\citep{carlini2024poisoning}.
+In gibberish-backdoor pretraining experiments, \citet{souly2025poisoning} observe no successful poisoning at 100 malicious documents, whereas the same 250-document dose succeeds across models from 600M to 13B parameters despite more than twentyfold differences in clean training data.
 
+\noindent\textbf{Research question.}
+\emph{How does the measured effect of an injected pretraining data group vary with its amount, carrier domain, and payload content, and how does that effect change across evaluation domains and the two settings of model size and training budget?}
+
+To address this question, we extend the trigger-injection approach of \citet{souly2025poisoning} to multiple carrier domains and payload types.
+Each injected document replaces a background sequence and combines a natural prefix, a shared trigger, and a behavioral payload (Figure~\ref{fig:demo}).
+We estimate the group's effect by contrasting outputs with and without the trigger and subtracting the same contrast in a matched clean model at the same checkpoint (Section~\ref{sec:approach}).
+Within each model-size setting, we fix the background data order, optimizer, and training seed while varying the injected documents (Section~\ref{sec:approach}).
+
+We train models with the Pythia architecture~\citep{biderman2023pythia} on our Math, Code, and General grouping of Dolma~3 sources~\citep{olmo2025olmo3}, using 70M parameters with 7B training tokens and 160M parameters with 16B tokens (Section~\ref{sec:approach}).
+Crossing six doses (10--500 documents), four carrier allocations (Math, Code, General, and a balanced mixture), and three payload types (random sequences, a repeated toxic text, and varied toxic texts) across both sizes yields 144 single-seed poisoning runs, with matched clean baselines and held-out evaluation in all three domains (Section~\ref{sec:approach}).
+
+At 160M parameters, random and repeated payloads exhibit nonlinear dose responses, whereas varied toxic payloads produce an elevated toxic preference at the smallest tested dose with little subsequent increase (Figure~\ref{fig:dose}).
+Domain alignment strengthens random-payload responses but has less influence on fixed-target gain (Figure~\ref{fig:context}).
+These preliminary results characterize collective responses; direct cross-group interaction tests remain planned, and the single-seed design and different absolute training budgets limit conclusions about robustness and model-size effects (Section~\ref{sec:plans}; Appendix~\ref{app:hypotheses}).
 
 % Pretraining data is curated with pointwise tools, such as quality and perplexity filters and attribution scores like influence functions and Data Shapley~\citep{koh2017influence,ghorbani2019shapley,wang2024shapley}, which treat a document's value as fixed regardless of what else is in the corpus.
 % Yet some of the clearest evidence of how data shapes behavior is collective: about 250 poisoned documents implant a backdoor in models from 600M to 13B parameters, a nearly constant \emph{count} even as the clean corpus grows by orders of magnitude~\citep{souly2025poisoning}.
